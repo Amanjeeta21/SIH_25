@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Electric Fence Death Hotspots - Palakkad (Topo Map)</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <style>
+    #map {
+      height: 600px;
+      width: 100%;
+    }
+  </style>
+</head>
+<body>
+  <h2>Palakkad District - Electric Fence Death Hotspots (Topo)</h2>
+  <div id="map"></div>
+
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script>
+    // Initialize map centered on Palakkad
+    var map = L.map('map').setView([10.85, 76.70], 9);
+
+    // Add Topographic baselayer
+    L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+      maxZoom: 17,
+      attribution: 'Map data © <a href="https://opentopomap.org">OpenTopoMap</a> contributors'
+    }).addTo(map);
+
+    // Define points
+    var locations = [
+      { name: "Walayar (Checkpost/Forest Fringe)", coords: [10.8428, 76.8388] },
+      { name: "Pudussery West", coords: [10.7880, 76.7279] },
+      { name: "Kottekad", coords: [10.8157, 76.6935] },
+      { name: "Chittadi", coords: [10.5506, 76.5228] },
+      { name: "Agali (Attappady Hotspot)", coords: [11.0739, 76.6123] },
+      { name: "Pudur (Attappady Hotspot)", coords: [11.0900, 76.6330] }
+    ];
+
+    var agaliCircle;
+
+    locations.forEach(function(loc) {
+      // Add marker
+      var marker = L.marker(loc.coords).addTo(map)
+        .bindPopup("<b>" + loc.name + "</b><br>Lat: " + loc.coords[0] + "<br>Lon: " + loc.coords[1])
+        .bindTooltip(loc.name, {permanent: false, direction: "top"}); // Tooltip on hover
+
+      // Special behavior for Agali
+      if(loc.name.includes("Agali")) {
+        marker.on('click', function() {
+          // Remove previous circle if exists
+          if(agaliCircle) map.removeLayer(agaliCircle);
+
+          // Add 100m radius circle
+          agaliCircle = L.circle(loc.coords, {
+            color: 'red',
+            fillColor: 'red',
+            fillOpacity: 0.2,
+            radius: 100
+          }).addTo(map);
+
+          // Bind popup to circle
+          agaliCircle.bindPopup("<b>Agali Hotspot</b><br>High mortality rate area within 100m radius.").openPopup();
+
+          // Zoom in to circle
+          map.setView(loc.coords, 16);
+        });
+      }
+    });
+  </script>
+</body>
+</html>

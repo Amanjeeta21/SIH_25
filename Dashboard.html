@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>SIH Electric Fence Monitoring — SPA Dashboard</title>
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="styles.css" />
+
+  <!-- External Libraries -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <h2>FenceTrack</h2>
+    <nav>
+      <a href="#home" class="active">Dashboard</a>
+      <a href="#map">Map</a>
+      <a href="#analytics">Analytics</a>
+      <a href="#alerts">Alerts</a>
+      <a href="#settings">Settings</a>
+    </nav>
+    <button id="collapseSidebar">⏪</button>
+  </div>
+
+  <!-- Main content -->
+  <div class="main">
+    <header>
+      <h1>SIH Electric Fence Monitoring</h1>
+      <div class="header-right">
+        <button id="refreshBtn">⟳ Refresh</button>
+        <span id="lastUpdated"></span>
+      </div>
+    </header>
+
+    <!-- Dashboard Sections -->
+    <section id="home" class="page active">
+      <h2>Summary</h2>
+      <div class="cards">
+        <div class="card">Total Waypoints: <span id="wpCount">-</span></div>
+        <div class="card">Authorized: <span id="authCount">-</span></div>
+        <div class="card">Unauthorized: <span id="unauthCount">-</span></div>
+      </div>
+      <canvas id="pieChart"></canvas>
+    </section>
+
+    <section id="map" class="page">
+      <h2>Map View</h2>
+      <div id="mapid"></div>
+    </section>
+
+    <section id="analytics" class="page">
+      <h2>Analytics</h2>
+      <canvas id="barChart"></canvas>
+      <canvas id="lineWay"></canvas>
+      <canvas id="barPerFence"></canvas>
+      <canvas id="timelineChart"></canvas>
+      <button id="exportAllCSV">Export All CSV</button>
+      <button id="exportPDF">Export PDF</button>
+    </section>
+
+    <section id="alerts" class="page">
+      <h2>Alerts Log</h2>
+      <table id="alertsTable">
+        <thead>
+          <tr>
+            <th>Time</th><th>Type</th><th>Message</th><th>Resolved</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+      <button id="exportBtn">Export CSV</button>
+    </section>
+
+    <section id="settings" class="page">
+      <h2>Settings</h2>
+      <input id="rfidInput" placeholder="Enter RFID ID" />
+      <button id="addRfid">Add RFID</button>
+    </section>
+  </div>
+
+  <!-- App JS -->
+  <script src="app.js"></script>
+</body>
+</html>

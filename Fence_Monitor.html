@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Electric Fence Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+body {
+  margin:0; padding:0;
+  font-family: Arial, sans-serif;
+  background: #121212;
+  color: white;
+}
+.stats { display:flex; justify-content:center; gap:20px; flex-wrap:wrap; padding:10px 0; }
+.stat { background:#1e1e1e; border-radius:6px; padding:12px 18px; min-width:100px; text-align:center; box-shadow:0 0 10px rgba(0,255,0,0.3);}
+.stat h3 { margin:0; font-size:14px; color:orange; }
+.stat p { margin:5px 0 0 0; font-size:16px; }
+.status { width:14px; height:14px; border-radius:50%; display:inline-block; margin-left:5px; }
+
+.dashboard { display:flex; justify-content:center; gap:60px; padding:20px; flex-wrap:wrap; align-items:flex-start; }
+
+.left-column { display:flex; flex-direction:column; align-items:center; gap:40px; }
+#radarTitle { font-size: 18px; color: lime; margin-bottom: 10px; text-align:center; }
+#radarCanvas { background: #111; border-radius: 50%; box-shadow: 0 0 25px rgba(0,255,0,0.5); width: 320px; height: 320px; }
+
+.gauges { display:flex; gap:50px; justify-content:center; align-items:flex-start; }
+.gauge-container { display:flex; flex-direction:column; align-items:center; }
+.gauge { position:relative; width:150px; height:80px; background:#111; border-radius:150px 150px 0 0; box-shadow:0 0 25px rgba(0,255,0,0.5); }
+.gauge canvas { position:absolute; left:0; top:0; }
+.gauge .needle { position:absolute; width:2px; height:80px; background:red; bottom:0; left:50%; transform-origin:bottom center; transform:rotate(-90deg); transition: transform 0.3s ease-out; }
+.gauge-container label { margin-bottom:5px; color:lime; font-size:14px; }
+.gauge-container input, .gauge-container select { margin-top:10px; width:140px; }
+
+.charts { display:flex; flex-direction:column; gap:25px; max-width:700px; width:100%; }
+canvas.chart-canvas { background:#1e1e1e; border-radius:12px; padding:10px; box-shadow:0 0 15px rgba(0,255,0,0.3); }
+</style>
+</head>
+<body>
+
+<div class="stats">
+  <div class="stat"><h3>Voltage</h3><p id="voltageVal">0 V</p></div>
+  <div class="stat"><h3>Current</h3><p id="currentVal">0 mA</p></div>
+  <div class="stat"><h3>Pulses</h3><p id="pulseCount">0</p></div>
+  <div class="stat"><h3>Status</h3><div class="status" id="fenceStatus"></div></div>
+</div>
+
+<div class="dashboard">
+
+  <div class="left-column">
+    <div id="radarTitle">Obstacle Detection Radar</div>
+    <canvas id="radarCanvas" width="320" height="320"></canvas>
+
+    <div class="gauges">
+      <!-- Voltage Gauge -->
+      <div class="gauge-container">
+        <label for="voltageInput">Voltage (V)</label>
+        <div class="gauge">
+          <canvas id="voltageGauge" width="150" height="80"></canvas>
+          <div class="needle" id="voltageNeedle"></div>
+        </div>
+        <input type="number" id="voltageInput" min="0" max="50" step="1" value="0">
+        <select id="voltagePreset">
+          <option value="">Select preset</option>
+          <option value="10">10 V</option>
+          <option value="20">20 V</option>
+          <option value="30">30 V</option>
+          <option value="40">40 V</option>
+          <option value="50">50 V</option>
+        </select>
+      </div>
+
+      <!-- Current Gauge -->
+      <div class="gauge-container">
+        <label for="currentInput">Current (mA)</label>
+        <div class="gauge">
+          <canvas id="currentGauge" width="150" height="80"></canvas>
+          <div class="needle" id="currentNeedle"></div>
+        </div>
+        <input type="number" id="currentInput" min="0" max="30" step="1" value="0">
+        <select id="currentPreset">
+          <option value="">Select preset</option>
+          <option value="5">5 mA</option>
+          <option value="10">10 mA</option>
+          <option value="15">15 mA</option>
+          <option value="20">20 mA</option>
+          <option value="25">25 mA</option>
+          <option value="30">30 mA</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <div class="charts">
+    <canvas id="voltageChart" class="chart-canvas"></canvas>
+    <canvas id="currentChart" class="chart-canvas"></canvas>
+    <canvas id="waveformChart" class="chart-canvas"></canvas>
+  </div>
+
+</div>
+
+<script>
+// Radar
+const radar = document.getElementById('radarCanvas');
+const ctx = radar.getContext('2d');
+const radarRadius = radar.width/2 - 10;
+let sweepAngle = 0;
+const obstacles = [];
+let waves = [];
+let blink = true;
+let obstacleIndex = 0;
+setInterval(()=>{ blink = !blink; },500);
+
+function generateObstacles(){
+  const count = Math.floor(Math.random()*5)+2;
+  for(let i=0;i<count;i++){
+    if(!obstacles[i]) obstacles[i]={r: Math.random(), angle: Math.random()*2*Math.PI, visible:true};
+    else obstacles[i].visible=true;
+  }
+}
+
+function drawRadar(){
+  ctx.clearRect(0,0,radar.width,radar.height);
+  const cx = radar.width/2;
+  const cy = radar.height/2;
+
+  const gradient = ctx.createRadialGradient(cx,cy,0,cx,cy,radarRadius);
+  gradient.addColorStop(0,'rgba(0,255,0,0.3)');
+  gradient.addColorStop(1,'rgba(0,255,0,0)');
+  ctx.fillStyle = gradient;
+  ctx.beginPath();
+  ctx.moveTo(cx,cy);
+  ctx.arc(cx,cy,radarRadius,sweepAngle-Math.PI/90,sweepAngle);
+  ctx.closePath();
+  ctx.fill();
+  sweepAngle +=0.03; if(sweepAngle>2*Math.PI) sweepAngle=0;
+
+  if(Math.random()<0.02) waves.push({radius:0, alpha:0.4});
+  waves.forEach(w=>{
+    ctx.beginPath();
+    ctx.arc(cx,cy,w.radius,0,2*Math.PI);
+    ctx.strokeStyle=`rgba(0,255,0,${w.alpha})`;
+    ctx.lineWidth=2;
+    ctx.stroke();
+    w.radius+=2;
+    w.alpha-=0.005;
+  });
+  waves=waves.filter(w=>w.alpha>0);
+
+  if(obstacles.length>0 && blink){
+    const ob = obstacles[obstacleIndex];
+    const x = cx + ob.r*radarRadius*Math.cos(ob.angle);
+    const y = cy + ob.r*radarRadius*Math.sin(ob.angle);
+    ctx.fillStyle='red';
+    ctx.beginPath();
+    ctx.arc(x,y,6,0,2*Math.PI);
+    ctx.fill();
+  }
+
+  requestAnimationFrame(drawRadar);
+}
+
+setInterval(()=>{ if(obstacles.length>0){ obstacleIndex = (obstacleIndex+1) % obstacles.length; } }, 1000);
+drawRadar();
+
+// Gauges
+function drawGauge(canvasId,maxValue){
+  const c=document.getElementById(canvasId);
+  const ctx=c.getContext('2d');
+  const w=c.width, h=c.height;
+  const cx=w/2, cy=h;
+  const radius=w/2-10;
+  ctx.clearRect(0,0,w,h);
+  ctx.strokeStyle='lime';
+  ctx.lineWidth=2;
+  for(let i=0;i<=10;i++){
+    const angle=Math.PI*(i/10);
+    const x1=cx + Math.cos(Math.PI-angle)*radius;
+    const y1=cy - Math.sin(Math.PI-angle)*radius;
+    const x2=cx + Math.cos(Math.PI-angle)*(radius-10);
+    const y2=cy - Math.sin(Math.PI-angle)*(radius-10);
+    ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+    ctx.fillStyle='lime'; ctx.font='10px Arial';
+    const val=Math.round(maxValue*(i/10));
+    const nx=cx + Math.cos(Math.PI-angle)*(radius-20)-7;
+    const ny=cy - Math.sin(Math.PI-angle)*(radius-20)+5;
+    ctx.fillText(val,nx,ny);
+  }
+}
+
+function updateGauges(voltage,current){
+  drawGauge('voltageGauge',50);
+  drawGauge('currentGauge',30);
+  document.getElementById('voltageNeedle').style.transform=`rotate(${(voltage/50)*180-90}deg)`;
+  document.getElementById('currentNeedle').style.transform=`rotate(${(current/30)*180-90}deg)`;
+}
+
+// Charts
+const timestamps=[], voltageData=[], currentData=[], waveformData=[];
+let t = 0;
+
+// Pulsating gauge waves
+let voltageWaves = [], currentWaves = [];
+function drawGaugeWaves(ctx, width, height, waves, color){
+  waves.forEach(w=>{
+    ctx.beginPath();
+    ctx.arc(width/2, height, w.radius, Math.PI, 2*Math.PI);
+    ctx.strokeStyle = `rgba(${color},${w.alpha})`;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    w.radius += 1.5;
+    w.alpha -= 0.005;
+  });
+  return waves.filter(w=>w.alpha>0);
+}
+
+function updateGaugeWaves(){
+  const vGaugeCanvas = document.getElementById('voltageGauge');
+  const cGaugeCanvas = document.getElementById('currentGauge');
+  const vCtx = vGaugeCanvas.getContext('2d');
+  const cCtx = cGaugeCanvas.getContext('2d');
+
+  if(Math.random()<0.05) voltageWaves.push({radius:10, alpha:0.4});
+  if(Math.random()<0.05) currentWaves.push({radius:10, alpha:0.4});
+
+  voltageWaves = drawGaugeWaves(vCtx, vGaugeCanvas.width, vGaugeCanvas.height, voltageWaves, '0,255,0');
+  currentWaves = drawGaugeWaves(cCtx, cGaugeCanvas.width, cGaugeCanvas.height, currentWaves, '255,165,0');
+
+  requestAnimationFrame(updateGaugeWaves);
+}
+updateGaugeWaves();
+
+// Line charts
+const voltageChart=new Chart(document.getElementById("voltageChart"),{
+  type:'line', data:{labels:timestamps,datasets:[{label:'Voltage (V)',data:voltageData,borderColor:'lime',backgroundColor:'rgba(0,255,0,0.2)',fill:true,tension:0.3}]},
+  options:{scales:{x:{ticks:{color:'white'}},y:{ticks:{color:'white'},grid:{color:'rgba(255,255,255,0.1)'}}},plugins:{legend:{labels:{color:'white'}}}}
+});
+const currentChart=new Chart(document.getElementById("currentChart"),{
+  type:'line', data:{labels:timestamps,datasets:[{label:'Current (mA)',data:currentData,borderColor:'orange',backgroundColor:'rgba(255,165,0,0.2)',fill:true,tension:0.3}]},
+  options:{scales:{x:{ticks:{color:'white'}},y:{ticks:{color:'white'},grid:{color:'rgba(255,255,255,0.1)'}}},plugins:{legend:{labels:{color:'white'}}}}
+});
+const waveformChart=new Chart(document.getElementById("waveformChart"),{
+  type:'line', data:{labels:timestamps,datasets:[{label:'Fence Pulse',data:waveformData,borderColor:'cyan',backgroundColor:'rgba(0,255,255,0.2)',fill:true,tension:0.3}]},
+  options:{scales:{x:{ticks:{color:'white'}},y:{ticks:{color:'white'},grid:{color:'rgba(255,255,255,0.1)'}}},plugins:{legend:{labels:{color:'white'}}}}
+});
+
+// Dashboard update
+function updateDashboard(){
+  t += 0.1;
+
+  const vBase = parseFloat(document.getElementById('voltageInput').value) || 0;
+  const cBase = parseFloat(document.getElementById('currentInput').value) || 0;
+  const pulse = Math.floor(Math.random()*2);
+
+  document.getElementById('voltageVal').innerText = vBase+' V';
+  document.getElementById('currentVal').innerText = cBase+' mA';
+  document.getElementById('pulseCount').innerText = pulse;
+  document.getElementById('fenceStatus').style.backgroundColor = pulse?'red':'lime';
+
+  if(timestamps.length>20){timestamps.shift(); voltageData.shift(); currentData.shift(); waveformData.shift();}
+  const now=new Date().toLocaleTimeString();
+  timestamps.push(now);
+
+  // Add small oscillating waves to simulate subtle voltage/current
+  voltageData.push(vBase + Math.sin(t)*2);
+  currentData.push(cBase + Math.sin(t*1.5)*1.5);
+  waveformData.push(pulse?Math.random()*5+1:Math.random()*0.5);
+
+  voltageChart.update();
+  currentChart.update();
+  waveformChart.update();
+
+  updateGauges(vBase,cBase);
+  generateObstacles();
+}
+
+setInterval(updateDashboard,1000);
+
+// Manual inputs
+document.getElementById('voltagePreset').addEventListener('change',e=>{ document.getElementById('voltageInput').value=e.target.value; });
+document.getElementById('currentPreset').addEventListener('change',e=>{ document.getElementById('currentInput').value=e.target.value; });
+</script>
+</body>
+</html>

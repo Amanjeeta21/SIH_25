@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Camera Access</title>
+  <style>
+    body {
+      background: #121212;
+      color: white;
+      font-family: Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+    }
+    video {
+      width: 90vw;       /* take 90% of viewport width */
+      height: 90vh;      /* take 90% of viewport height */
+      border: 4px solid #3B82F6;
+      border-radius: 12px;
+      box-shadow: 0 0 20px rgba(0,0,0,0.8);
+      object-fit: cover;  /* fill the box, crop if needed */
+    }
+    button {
+      margin-top: 20px;
+      padding: 12px 24px;
+      background: #3B82F6;
+      border: none;
+      border-radius: 8px;
+      color: white;
+      font-size: 18px;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #2563EB;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>📷 Camera Feed</h1>
+  <video id="camera" autoplay playsinline></video>
+  <button id="start">Start Camera</button>
+  <button id="stop">Stop Camera</button>
+
+  <script>
+    const video = document.getElementById('camera');
+    const startBtn = document.getElementById('start');
+    const stopBtn = document.getElementById('stop');
+    let stream;
+
+    // Start Camera
+    startBtn.addEventListener('click', async () => {
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+        video.srcObject = stream;
+      } catch (err) {
+        alert("Error accessing camera: " + err.message);
+      }
+    });
+
+    // Stop Camera
+    stopBtn.addEventListener('click', () => {
+      if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+        video.srcObject = null;
+      }
+    });
+  </script>
+
+</body>
+</html>

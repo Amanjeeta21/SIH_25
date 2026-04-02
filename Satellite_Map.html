@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Agali Drone Path — Satellite View</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <style>
+    html, body, #map { height: 100%; margin: 0; padding: 0; }
+    .tooltip-coords { font-size: 12px; }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+    const coords = [
+      [11.074666, 76.615677],
+      [11.074720, 76.616359],
+      [11.073617, 76.615766],
+      [11.073653, 76.616550]
+    ];
+
+    // Google Satellite tiles
+    const googleSat = L.tileLayer('https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
+      maxZoom: 20,
+      attribution: '© Google'
+    });
+
+    // OpenStreetMap tiles as backup
+    const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '© OpenStreetMap contributors'
+    });
+
+    // Map initialization
+    const map = L.map('map', {
+      center: coords[0],
+      zoom: 18,
+      layers: [googleSat] // default satellite
+    });
+
+    // Polygon connecting the 4 points
+    const polygon = L.polygon(coords, {
+      color: "red",
+      weight: 3,
+      fill: false
+    }).addTo(map);
+
+    // Add corner markers with coordinates
+    coords.forEach((c, i) => {
+      const lat = c[0].toFixed(6);
+      const lng = c[1].toFixed(6);
+      L.circleMarker(c, {
+        radius: 5,
+        fillColor: "#007bff",
+        color: "#fff",
+        weight: 1.5,
+        fillOpacity: 0.9
+      }).addTo(map).bindTooltip(
+        `<b>Point ${i+1}</b><br>Lat: ${lat}<br>Lng: ${lng}`,
+        { direction: 'top', className: 'tooltip-coords' }
+      );
+    });
+
+    // Fit map to polygon bounds
+    map.fitBounds(polygon.getBounds().pad(0.3));
+
+    // Layer switcher
+    L.control.layers(
+      { "Google Satellite": googleSat, "OSM Street": osm },
+      { "Drone Area": polygon }
+    ).addTo(map);
+  </script>
+</body>
+</html>
